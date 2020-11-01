@@ -1,0 +1,360 @@
+[gd_scene load_steps=18 format=2]
+
+[ext_resource path="res://Scene/World.tscn" type="PackedScene" id=1]
+[ext_resource path="res://Scripts/KinematicBody.gd" type="Script" id=2]
+[ext_resource path="res://Scene/Joystick.tscn" type="PackedScene" id=3]
+[ext_resource path="res://Scene/skeleton.tscn" type="PackedScene" id=4]
+
+[sub_resource type="GDScript" id=1]
+script/source = "extends Spatial
+var myMesh
+
+var random = RandomNumberGenerator.new()
+onready var timer = get_parent().get_node(\"Timer\")
+onready var powerupstime = get_parent().get_node(\"Powerups2\")
+onready var timerLabel = get_parent().get_node(\"Debug/Timer\")
+onready var playerMesh = get_parent().get_node(\"Player/skeleton\")
+onready var positionLabel = get_parent().get_node(\"Debug/Position\")
+onready var goalpathLabel = get_parent().get_node(\"Debug/Goalpath\")
+onready var goalMesh = get_parent().get_node(\"Goal/Area/MeshInstance\")
+onready var goalColl = get_parent().get_node(\"Goal/Area/CollisionShape\")
+onready var anim_player = get_parent().get_node(\"Player/skeleton/AnimationPlayer\")
+onready var powerupsMesh = get_parent().get_node(\"Powerups/PowerupsArea/MeshInstance\")
+onready var powerupsColl = get_parent().get_node(\"Powerups/PowerupsArea/CollisionShape\")
+onready var powerupsDurationLabel = get_parent().get_node(\"Debug/Powerups\")
+onready var powerupsTypeLabel = get_parent().get_node(\"Debug/PowerupsType\")
+
+var powerups_timer = 0
+var powerups_countdown = 0
+
+var time_second = 0
+var time_minute = 0
+var time_hour = 0
+var display_second = \"\"
+var display_minute = \"\"
+
+var goal_path_coordinate_x = 0
+var goal_path_coordinate_y = 0
+ 
+var finishTime = \"\"
+
+func _process(delta):
+	var playerCoordinate = playerMesh.global_transform.origin
+	positionLabel.text = \"Position: \"+str(playerCoordinate)
+	pass
+
+func _ready():
+	powerupsDurationLabel.text = \"Powerups Duration: 0\"
+	powerupsTypeLabel.text = \"Powerups type: none\"
+	
+	var translateRandomX = random.randf_range(-25, 25)
+	var translateRandomY = random.randf_range(-25, 25)
+	goalMesh.translate(Vector3(translateRandomX, 0, translateRandomY))
+	goalColl.translate(Vector3(translateRandomX, 0, translateRandomY))
+	goalpathLabel.text = str(goalMesh.global_transform.origin)
+	
+	power_ups()
+	
+	for index in range(100):
+		myMesh = MeshInstance.new()
+		random_object(index)
+	pass
+	
+	timer.set_wait_time(1)
+	timer.start()
+
+	
+func random_object(index):
+	random.randomize()
+	var translateRandomX = random.randf_range(-3, 3)
+	var translateRandomZ = random.randf_range(-3, 3)
+	myMesh.mesh = CubeMesh.new()
+	myMesh.translate(Vector3(translateRandomX, 2, translateRandomZ))
+	myMesh.scale_object_local(Vector3(0.1, 0.5, 0.1))
+	myMesh.create_convex_collision()	
+	add_child(myMesh) 
+	pass
+
+func power_ups():
+	random.randomize()
+	var translateRandomX = random.randf_range(-15, 15)
+	var translateRandomZ = random.randf_range(-15, 15)
+	
+	powerupsMesh.translate(Vector3(translateRandomX, 0, translateRandomZ))
+	powerupsColl.translate(Vector3(translateRandomX, 0, translateRandomZ))
+	add_child(powerupsMesh)
+	pass
+
+func _on_Timer_timeout():
+	time_second += 1
+	
+	if time_second > 60:
+		time_minute += 1
+		time_second = 0
+	
+	if time_minute > 60:
+		time_hour += 1
+		time_minute = 0
+	
+	if time_second < 10:
+		display_second = \"0\"+str(time_second)
+	else:
+		display_second = str(time_second)
+	
+	if time_minute < 10:
+		display_minute = \"0\"+str(time_minute)
+	else:
+		display_minute = str(time_minute)
+	
+	
+	var displayTime = \"Timer: \"+str(time_hour)+\":\"+str(display_minute)+\":\"+display_second
+	timerLabel.text = displayTime
+	finishTime = displayTime
+	
+	pass # Replace with function body.
+
+
+func _on_Area_body_entered(body):
+	if (typeof(body) == 17 and body.get_name() == \"Player\"):
+		GameManager.score = finishTime
+		get_tree().change_scene(\"res://Scene/Finish.tscn\")
+		pass # Replace with function body.
+
+#func queue_free():
+
+	#GameManager.accel = 15
+	#GameManager.speed = 5
+	#GameManager.allowJump = false
+	#GameManager.grav = -60
+	#GameManager.max_grav = -150
+	#GameManager.jump_force = 20
+	#print(\"power ups stop\")
+	#pass
+
+func _on_PowerupsArea_body_entered(body):
+	if (typeof(body) == 17 and body.get_name() == \"Player\"):
+		var powerups_type = \"Powerups type: \"
+		powerups_countdown = 0
+		random.randomize()
+		powerups_timer = random.randi_range(0, 60)
+		GameManager.powerups_duration = powerups_timer
+		var powerups_target = random.randi_range(0, 2)
+		powerupstime.set_wait_time(1)
+		powerupstime.start()
+		power_ups()
+		
+		if (powerups_target == 0):
+			GameManager.accel = random.randi_range(0, 16)
+			powerups_type += \"Accelarate = \"+str(GameManager.accel)
+		elif (powerups_target == 1):
+			GameManager.speed = random.randi_range(0, 50)
+			powerups_type += \"Speed = \"+str(GameManager.speed)
+		elif (powerups_target == 2):
+			GameManager.grav = random.randi_range(-200, -1)
+			GameManager.max_grav = random.randi_range(-150, -1)
+			GameManager.jump_force = random.randi_range(0, 40)
+			powerups_type += \"Jump \\nGravity = \"+str(GameManager.grav)+\"\\nMax Gravitiy = \"+str(GameManager.max_grav)+\"\\nJump Force = \"+str(GameManager.jump_force)
+		powerupsTypeLabel.text = powerups_type
+		pass # Replace with function body.
+
+
+func _on_Powerups2_timeout():
+	powerups_countdown += 1
+	if powerups_countdown > powerups_timer:
+		GameManager.accel = 15
+		GameManager.speed = 5
+		GameManager.grav = -200
+		GameManager.max_grav = -150
+		GameManager.jump_force = 20
+		
+		powerupsDurationLabel.text = \"Powerups Duration: 0\"
+		powerupsTypeLabel.text = \"Powerups type: none\"
+		print(\"power ups stop\")
+		
+		powerupstime.stop()
+	else:
+		print(powerups_countdown)
+		GameManager.powerups_duration -= 1
+		powerupsDurationLabel.text = \"Powerups Duration: \"+str(GameManager.powerups_duration)
+	pass # Replace with function body.
+"
+
+[sub_resource type="CapsuleShape" id=2]
+height = 2.28819
+
+[sub_resource type="BoxShape" id=3]
+
+[sub_resource type="BoxShape" id=4]
+
+[sub_resource type="BoxShape" id=5]
+
+[sub_resource type="BoxShape" id=6]
+
+[sub_resource type="PlaneMesh" id=7]
+
+[sub_resource type="SpatialMaterial" id=8]
+albedo_color = Color( 1, 0, 0, 1 )
+
+[sub_resource type="BoxShape" id=9]
+
+[sub_resource type="BoxShape" id=10]
+
+[sub_resource type="CubeMesh" id=11]
+
+[sub_resource type="SpatialMaterial" id=12]
+albedo_color = Color( 0.929412, 0.345098, 0.933333, 1 )
+
+[sub_resource type="Environment" id=13]
+background_mode = 2
+
+[node name="Main" type="Spatial"]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, -0.099556, -0.0658035, 0.0127869 )
+__meta__ = {
+"_edit_vertical_guides_": [ 24.2629 ]
+}
+
+[node name="World" parent="." instance=ExtResource( 1 )]
+transform = Transform( 9.99993, 0.0016937, 0.0324661, -0.0169319, 0.999999, -0.00159163, -0.0324688, 0.000153681, 9.99995, 1.00088, 0.996903, 0.990063 )
+script = SubResource( 1 )
+
+[node name="Player" type="KinematicBody" parent="."]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0.028743, 0.824838, -0.214669 )
+script = ExtResource( 2 )
+
+[node name="OmniLight" type="OmniLight" parent="Player"]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, -1, -0.334001, 2.47834, -0.866129 )
+omni_attenuation = 0.267946
+
+[node name="CollisionShape" type="CollisionShape" parent="Player"]
+transform = Transform( 0.378694, 0, 0, 0, -0.02089, 0.358487, 0, -0.321464, -0.0187325, -0.283552, 1.58186, -0.813973 )
+shape = SubResource( 2 )
+
+[node name="skeleton" parent="Player" instance=ExtResource( 4 )]
+transform = Transform( -1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, -0.33441, 0.997572, -0.807143 )
+
+[node name="Camera" type="Camera" parent="Player"]
+transform = Transform( 1, 0, 0, 0, 0.582449, 0.812867, 0, -0.812867, 0.582449, -0.357433, 8.21776, 4.07026 )
+fov = 46.6879
+
+[node name="CanvasLayer" type="CanvasLayer" parent="."]
+
+[node name="MarginContainer" parent="CanvasLayer" instance=ExtResource( 3 )]
+margin_left = 59.37
+margin_top = 48.1455
+margin_right = -60.63
+margin_bottom = -51.8545
+
+[node name="Corner" type="Spatial" parent="."]
+
+[node name="StaticBody" type="StaticBody" parent="Corner"]
+
+[node name="CollisionShape" type="CollisionShape" parent="Corner/StaticBody"]
+transform = Transform( -1, -2.62268e-07, 0, 8.74228e-08, -3, 0, 0, 0, 30.1034, 31.9497, 4.7518, 1 )
+shape = SubResource( 3 )
+
+[node name="CollisionShape2" type="CollisionShape" parent="Corner/StaticBody"]
+transform = Transform( -1, -2.62268e-07, 0, 8.74228e-08, -3, 0, 0, 0, 30.1034, -33.9723, 4.84169, -0.229746 )
+shape = SubResource( 4 )
+
+[node name="CollisionShape3" type="CollisionShape" parent="Corner/StaticBody"]
+transform = Transform( 5.08047e-08, 1.33245e-14, -34.9885, 8.74228e-08, -3, 0, -1, -2.62268e-07, -1.31586e-06, -0.900806, 4.79003, -29.892 )
+shape = SubResource( 5 )
+
+[node name="CollisionShape4" type="CollisionShape" parent="Corner/StaticBody"]
+transform = Transform( 5.08047e-08, 1.33245e-14, -34.9885, 8.74228e-08, -3, 0, -1, -2.62268e-07, -1.31586e-06, 1.007, 4.79883, 30.9493 )
+shape = SubResource( 6 )
+
+[node name="Goal" type="Spatial" parent="."]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, -0.368068, 0, 0 )
+
+[node name="Area" type="Area" parent="Goal"]
+
+[node name="MeshInstance" type="MeshInstance" parent="Goal/Area"]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.9227, -0.721045 )
+mesh = SubResource( 7 )
+material/0 = SubResource( 8 )
+
+[node name="CollisionShape" type="CollisionShape" parent="Goal/Area"]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.92123, -0.721045 )
+shape = SubResource( 9 )
+
+[node name="Debug" type="Control" parent="."]
+margin_right = 198.0
+margin_bottom = 67.0
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Timer" type="Label" parent="Debug"]
+margin_left = 23.9385
+margin_top = 18.2689
+margin_right = 156.939
+margin_bottom = 73.2689
+text = "Timer: 0:00:00"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Position" type="Label" parent="Debug"]
+visible = false
+margin_left = 27.0
+margin_top = 37.0
+margin_right = 119.0
+margin_bottom = 58.0
+text = "Position:"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Goalpath" type="Label" parent="Debug"]
+visible = false
+margin_left = 26.027
+margin_top = 57.0
+margin_right = 118.027
+margin_bottom = 81.0
+text = "Goalpath: "
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Powerups" type="Label" parent="Debug"]
+margin_left = 26.7269
+margin_top = 34.7452
+margin_right = 153.727
+margin_bottom = 48.7452
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="PowerupsType" type="Label" parent="Debug"]
+margin_left = 25.8361
+margin_top = 53.454
+margin_right = 65.8361
+margin_bottom = 67.454
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Timer" type="Timer" parent="."]
+
+[node name="Powerups2" type="Timer" parent="."]
+
+[node name="Powerups" type="Spatial" parent="."]
+
+[node name="PowerupsArea" type="Area" parent="Powerups"]
+
+[node name="CollisionShape" type="CollisionShape" parent="Powerups/PowerupsArea"]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, -0.360077, 2.72389, -0.731539 )
+shape = SubResource( 10 )
+
+[node name="MeshInstance" type="MeshInstance" parent="Powerups/PowerupsArea"]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, -0.360077, 2.72389, -0.731539 )
+mesh = SubResource( 11 )
+material/0 = SubResource( 12 )
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource( 13 )
+[connection signal="body_entered" from="Goal/Area" to="World" method="_on_Area_body_entered"]
+[connection signal="timeout" from="Timer" to="World" method="_on_Timer_timeout"]
+[connection signal="timeout" from="Powerups2" to="World" method="_on_Powerups2_timeout"]
+[connection signal="body_entered" from="Powerups/PowerupsArea" to="World" method="_on_PowerupsArea_body_entered"]

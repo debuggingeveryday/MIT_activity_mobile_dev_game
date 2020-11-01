@@ -1,0 +1,34 @@
+[gd_scene load_steps=2 format=2]
+
+[ext_resource path="res://Scripts/Finish.gd" type="Script" id=1]
+
+[node name="Control" type="Control"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource( 1 )
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Label" type="Label" parent="."]
+margin_left = 33.3499
+margin_top = 138.769
+margin_right = 75.3499
+margin_bottom = 152.769
+rect_scale = Vector2( 6.96524, 6.21016 )
+text = "Finish "
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Button" type="Button" parent="."]
+margin_left = 385.769
+margin_top = 376.425
+margin_right = 453.769
+margin_bottom = 396.425
+rect_scale = Vector2( 3.90488, 3.67994 )
+text = "Try again"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+[connection signal="button_down" from="Button" to="." method="_on_Button_button_down"]
